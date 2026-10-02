@@ -22,88 +22,115 @@ $selectedGroup = (string) ($_GET['group'] ?? '');
 $selectedParty = (int) ($_GET['party'] ?? 0);
 
 /**
- * Return only the current routing event for documents relevant to this user.
- * Filtering the log table before checking for a newer event prevents an empty
- * dashboard from repeatedly scanning every historical document/log pair.
+ * Load each relevant document's latest routing row once. The legacy data has
+ * many history rows per tracking number; deriving MAX(id) once avoids the
+ * grouped dashboard's previous three correlated aggregate queries.
  */
-function dashboard_rows(mysqli $db, string $where, int $userId, int $partyId = 0, string $partyColumn = ''): array
+function dashboard_current_routes(mysqli $db, int $userId): array
 {
-    $sql = "SELECT d.id_track, d.title, d.status AS document_status, l.status, l.date, l.sender, l.receiver,
+    $sql = "SELECT d.id_track, d.title, d.author, d.status AS document_status,
+        l.id AS log_id, l.status, l.date, l.sender, l.receiver,
         CONCAT_WS(', ', su.lname, NULLIF(CONCAT(su.fname, ' ', su.mname), '')) AS sender_name,
         CONCAT_WS(', ', ru.lname, NULLIF(CONCAT(ru.fname, ' ', ru.mname), '')) AS receiver_name
         FROM dr_logs l
+        INNER JOIN (
+            SELECT id_track, MAX(id) AS latest_id
+            FROM dr_logs
+            GROUP BY id_track
+        ) latest ON latest.latest_id = l.id
         INNER JOIN dr_documents d ON d.id_track = l.id_track
         LEFT JOIN dr_users su ON su.id = l.sender
         LEFT JOIN dr_users ru ON ru.id = l.receiver
-        WHERE $where
-          AND NOT EXISTS (
-              SELECT 1 FROM dr_logs newer
-              WHERE newer.id_track = l.id_track AND newer.id > l.id
-          )";
-
-    $types = 'i';
-    $params = [$userId];
-    if ($partyId > 0 && in_array($partyColumn, ['l.sender', 'l.receiver'], true)) {
-        $sql .= " AND $partyColumn = ?";
-        $types .= 'i';
-        $params[] = $partyId;
-    }
-    $sql .= ' ORDER BY l.id DESC';
+        WHERE l.receiver = ? OR l.sender = ? OR d.author = ?
+        ORDER BY l.id DESC";
 
     $statement = $db->prepare($sql);
-    if (count($params) === 1) {
-        $statement->bind_param($types, $params[0]);
-    } else {
-        $statement->bind_param($types, $params[0], $params[1]);
-    }
+    $statement->bind_param('iii', $userId, $userId, $userId);
     $statement->execute();
 
     return $statement->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
-function dashboard_groups(mysqli $db, string $where, int $userId, string $partyColumn): array
+function dashboard_sections(array $routes, int $userId): array
 {
-    $labelJoin = $partyColumn === 'sender' ? 'su' : 'ru';
-    $sql = "SELECT l.$partyColumn AS party_id,
-        CONCAT_WS(', ', $labelJoin.lname, NULLIF(CONCAT($labelJoin.fname, ' ', $labelJoin.mname), '')) AS party_name,
-        COUNT(*) AS document_count, MAX(l.id) AS latest_log_id
-        FROM dr_logs l
-        INNER JOIN dr_documents d ON d.id_track = l.id_track
-        LEFT JOIN dr_users su ON su.id = l.sender
-        LEFT JOIN dr_users ru ON ru.id = l.receiver
-        WHERE $where
-          AND NOT EXISTS (
-              SELECT 1 FROM dr_logs newer
-              WHERE newer.id_track = l.id_track AND newer.id > l.id
-          )
-        GROUP BY l.$partyColumn, $labelJoin.lname, $labelJoin.fname, $labelJoin.mname
-        ORDER BY latest_log_id DESC";
+    $sections = [
+        'incoming' => [],
+        'receivables' => [],
+        'outgoing' => [],
+        'released' => [],
+        'closed' => [],
+    ];
 
-    $statement = $db->prepare($sql);
-    $statement->bind_param('i', $userId);
-    $statement->execute();
+    foreach ($routes as $route) {
+        $isReceiver = (int) $route['receiver'] === $userId;
+        $isSender = (int) $route['sender'] === $userId;
+        $isAuthor = (int) $route['author'] === $userId;
+        $status = (string) $route['status'];
 
-    return $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+        if ($isReceiver && $status === 'Pending') {
+            $sections['incoming'][] = $route;
+        }
+        if ($isReceiver && $status !== 'Pending' && $status !== 'Closed' && strtolower((string) $route['document_status']) === 'open') {
+            $sections['receivables'][] = $route;
+        }
+        if ($isSender && $status === 'Pending') {
+            $sections['outgoing'][] = $route;
+        }
+        if ($isAuthor && $status !== 'Pending' && $status !== 'Closed') {
+            $sections['released'][] = $route;
+        }
+        if ($isAuthor && strtolower((string) $route['document_status']) === 'closed') {
+            $sections['closed'][] = $route;
+        }
+    }
+
+    return $sections;
 }
 
-$incomingWhere = "l.receiver = ? AND l.status = 'Pending'";
-$receivableWhere = "l.receiver = ? AND l.status <> 'Pending' AND l.status <> 'Closed' AND d.status = 'open'";
-$outgoingWhere = "l.sender = ? AND l.status = 'Pending'";
-$releasedWhere = "d.author = ? AND l.status <> 'Pending' AND l.status <> 'Closed'";
-$closedWhere = "d.author = ? AND d.status = 'closed'";
+function filter_group_rows(array $rows, int $partyId, string $partyKey): array
+{
+    if ($partyId < 1) {
+        return $rows;
+    }
 
-$incoming = dashboard_rows($conn, $incomingWhere, $userId, $selectedGroup === 'incoming' ? $selectedParty : 0, 'l.sender');
-$receivable = dashboard_rows($conn, $receivableWhere, $userId, $selectedGroup === 'receivables' ? $selectedParty : 0, 'l.sender');
-$outgoing = dashboard_rows($conn, $outgoingWhere, $userId, $selectedGroup === 'outgoing' ? $selectedParty : 0, 'l.receiver');
-$released = dashboard_rows($conn, $releasedWhere, $userId);
-$closed = dashboard_rows($conn, $closedWhere, $userId);
+    return array_values(array_filter($rows, function (array $row) use ($partyId, $partyKey): bool {
+        return (int) $row[$partyKey] === $partyId;
+    }));
+}
+
+function group_rows(array $rows, string $partyKey, string $nameKey): array
+{
+    $groups = [];
+    foreach ($rows as $row) {
+        $partyId = (int) $row[$partyKey];
+        if (!isset($groups[$partyId])) {
+            $groups[$partyId] = [
+                'party_id' => $partyId,
+                'party_name' => $row[$nameKey] ?: 'Unknown',
+                'document_count' => 0,
+            ];
+        }
+        $groups[$partyId]['document_count']++;
+    }
+
+    return array_values($groups);
+}
+
+$routes = dashboard_current_routes($conn, $userId);
+$sections = dashboard_sections($routes, $userId);
+
+$incoming = filter_group_rows($sections['incoming'], $selectedGroup === 'incoming' ? $selectedParty : 0, 'sender');
+$receivable = filter_group_rows($sections['receivables'], $selectedGroup === 'receivables' ? $selectedParty : 0, 'sender');
+$outgoing = filter_group_rows($sections['outgoing'], $selectedGroup === 'outgoing' ? $selectedParty : 0, 'receiver');
+$released = $sections['released'];
+$closed = $sections['closed'];
 
 require __DIR__ . '/includes/app-shell.php';
 ?>
 <section class="stats" aria-label="Document summary">
-    <article class="stat card"><span>Incoming</span><strong><?= count($incoming) ?></strong></article>
-    <article class="stat card"><span>Receivables</span><strong><?= count($receivable) ?></strong></article>
-    <article class="stat card"><span>Outgoing</span><strong><?= count($outgoing) ?></strong></article>
+    <article class="stat card"><span>Incoming</span><strong><?= count($sections['incoming']) ?></strong></article>
+    <article class="stat card"><span>Receivables</span><strong><?= count($sections['receivables']) ?></strong></article>
+    <article class="stat card"><span>Outgoing</span><strong><?= count($sections['outgoing']) ?></strong></article>
     <article class="stat card"><span>Released</span><strong><?= count($released) ?></strong></article>
     <article class="stat card"><span>Closed</span><strong><?= count($closed) ?></strong></article>
 </section>
@@ -139,21 +166,22 @@ function document_section(string $title, array $rows, string $empty): void
     <?php
 }
 
-function group_section(string $title, array $rows, string $group, string $empty): void
+function group_section(string $title, array $rows, string $group, string $empty, string $partyKey, string $nameKey): void
 {
+    $groups = group_rows($rows, $partyKey, $nameKey);
     ?>
     <section>
         <div class="section-heading"><h2><?= e($title) ?> by contact</h2></div>
         <div class="panel data-wrap">
-            <?php if (!$rows): ?>
+            <?php if (!$groups): ?>
                 <div class="empty"><strong><?= e($empty) ?></strong></div>
             <?php else: ?>
                 <table class="data-table">
                     <thead><tr><th>Contact</th><th>Documents</th><th>Action</th></tr></thead>
                     <tbody>
-                    <?php foreach ($rows as $row): ?>
+                    <?php foreach ($groups as $row): ?>
                         <tr>
-                            <td><?= e($row['party_name'] ?: 'Unknown') ?></td>
+                            <td><?= e($row['party_name']) ?></td>
                             <td><?= (int) $row['document_count'] ?></td>
                             <td><a class="btn btn-secondary" href="<?= url('dashboard.php?group=' . rawurlencode($group) . '&party=' . (int) $row['party_id']) ?>">View documents</a></td>
                         </tr>
@@ -167,9 +195,9 @@ function group_section(string $title, array $rows, string $group, string $empty)
 }
 
 if ($grouped && $selectedGroup === '') {
-    group_section('Incoming documents', dashboard_groups($conn, $incomingWhere, $userId, 'sender'), 'incoming', 'No incoming documents.');
-    group_section('Receivables', dashboard_groups($conn, $receivableWhere, $userId, 'sender'), 'receivables', 'No receivable documents.');
-    group_section('Outgoing documents', dashboard_groups($conn, $outgoingWhere, $userId, 'receiver'), 'outgoing', 'No outgoing documents.');
+    group_section('Incoming documents', $sections['incoming'], 'incoming', 'No incoming documents.', 'sender', 'sender_name');
+    group_section('Receivables', $sections['receivables'], 'receivables', 'No receivable documents.', 'sender', 'sender_name');
+    group_section('Outgoing documents', $sections['outgoing'], 'outgoing', 'No outgoing documents.', 'receiver', 'receiver_name');
 } else {
     if ($selectedGroup !== ''): ?>
         <p><a href="<?= url('dashboard.php') ?>">Back to dashboard</a></p>
