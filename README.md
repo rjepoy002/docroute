@@ -7,7 +7,7 @@ DocuRoute is a lightweight PHP and MariaDB document-routing application for XAMP
 1. Place the project in `C:\xampp\htdocs\docuroute`.
 2. Import the existing DocuRoute data into `docrxzp_pal_db`.
 3. Apply [001_v2_schema.sql](database/migrations/001_v2_schema.sql) once after a database backup.
-4. Start Apache and MariaDB in XAMPP, then open `http://localhost/docuroute/`.
+4. Start Apache and MariaDB in XAMPP, then open `http://localhost/docroute/`.
 
 The default development connection is configured in `config/database.php`. Override it with `DOCROUTE_DB_HOST`, `DOCROUTE_DB_USER`, `DOCROUTE_DB_PASSWORD`, and `DOCROUTE_DB_NAME` environment variables when appropriate.
 
