@@ -1,1 +1,1 @@
-@import url('app.css');
+:root { --primary:#2563eb; --primary-dark:#1d4ed8; --success:#15803d; --warning:#b45309; --danger:#dc2626; --background:#f8fafc; --surface:#fff; --text-primary:#0f172a; --text-secondary:#64748b; --border:#e2e8f0; --sidebar:#102a43; --radius-sm:8px; --radius-md:12px; --space-2:8px; --space-3:12px; --space-4:16px; --space-6:24px; --shadow-sm:0 1px 3px rgba(15,23,42,.08); }

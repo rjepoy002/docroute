@@ -1,1 +1,1 @@
-/* Base styles are consolidated in app.css to keep the XAMPP deployment lightweight. */
+* { box-sizing:border-box; } html { color:var(--text-primary); background:var(--background); } body { margin:0; font:15px/1.5 Inter,"Segoe UI",Arial,sans-serif; } h1,h2,h3,p { margin-top:0; } a { color:var(--primary); text-decoration:none; } a:hover { text-decoration:underline; } button,input,select,textarea { font:inherit; } button { cursor:pointer; } img { display:block; max-width:100%; } small { color:var(--text-secondary); }

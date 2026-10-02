@@ -1,1 +1,1 @@
-/* Table styles live in app.css. */
+.data-wrap { overflow-x:auto; }.data-table { width:100%; min-width:720px; border-collapse:collapse; }.data-table th,.data-table td { padding:var(--space-3) 14px; text-align:left; border-bottom:1px solid var(--border); }.data-table th { color:var(--text-secondary); font-size:12px; letter-spacing:.04em; text-transform:uppercase; }.data-table tbody tr:nth-child(even) { background:#f8fafc; }.data-table tbody tr:hover { background:#eff6ff; }

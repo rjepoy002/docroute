@@ -1,8 +1,25 @@
--- Apply once to docrxzp_pal_db after taking a database backup.
--- Supports password_hash() output and the legacy grouped-dashboard preference.
-ALTER TABLE dr_users MODIFY password VARCHAR(255) NOT NULL;
-ALTER TABLE dr_users ADD COLUMN isgroup TINYINT(1) NOT NULL DEFAULT 0;
-ALTER TABLE dr_documents ADD UNIQUE KEY uq_dr_documents_tracking (id_track);
-CREATE INDEX idx_dr_logs_tracking_id ON dr_logs (id_track, id);
-CREATE INDEX idx_dr_logs_receiver_status ON dr_logs (receiver, status);
-CREATE INDEX idx_dr_logs_sender_status ON dr_logs (sender, status);
+-- DocuRoute V2 schema audit script. Run each diagnostic first; do not run an
+-- ALTER statement when its target column/index already exists.
+--
+-- REQUIRED: password hashes need VARCHAR(255). This preserves all values.
+-- SHOW COLUMNS FROM dr_users LIKE 'password';
+-- ALTER TABLE dr_users MODIFY password VARCHAR(255) NOT NULL;
+--
+-- LEGACY COMPATIBILITY: isgroup was already used by the legacy application.
+-- Only add it if the diagnostic returns no row.
+-- SHOW COLUMNS FROM dr_users LIKE 'isgroup';
+-- ALTER TABLE dr_users ADD COLUMN isgroup TINYINT(1) NOT NULL DEFAULT 0;
+--
+-- SAFETY CHECK: resolve duplicates manually before adding a unique key.
+-- SELECT id_track, COUNT(*) AS total FROM dr_documents
+-- GROUP BY id_track HAVING COUNT(*) > 1;
+-- SHOW INDEX FROM dr_documents WHERE Key_name = 'uq_dr_documents_tracking';
+-- ALTER TABLE dr_documents ADD UNIQUE KEY uq_dr_documents_tracking (id_track);
+--
+-- OPTIONAL PERFORMANCE INDEXES. Run each SHOW INDEX check before CREATE INDEX.
+-- SHOW INDEX FROM dr_logs WHERE Key_name = 'idx_dr_logs_tracking_id';
+-- CREATE INDEX idx_dr_logs_tracking_id ON dr_logs (id_track, id);
+-- SHOW INDEX FROM dr_logs WHERE Key_name = 'idx_dr_logs_receiver_status';
+-- CREATE INDEX idx_dr_logs_receiver_status ON dr_logs (receiver, status);
+-- SHOW INDEX FROM dr_logs WHERE Key_name = 'idx_dr_logs_sender_status';
+-- CREATE INDEX idx_dr_logs_sender_status ON dr_logs (sender, status);
