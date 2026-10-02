@@ -1,0 +1,1 @@
+<header class="topbar"><button class="menu-toggle" type="button" aria-controls="sidebar" aria-expanded="false">Menu</button><div><p class="eyebrow"><?= e($page_title ?? '') ?></p><h1><?= e($page_heading ?? $page_title ?? APP_NAME) ?></h1></div></header>

@@ -1,0 +1,2 @@
+<?php
+declare(strict_types=1); require_once __DIR__ . '/../includes/auth.php'; require_auth(); require_once __DIR__ . '/../includes/csrf.php'; require_once __DIR__ . '/../config/database.php'; require_csrf();$userId=(int)$_SESSION['user_id'];$stmt=$conn->prepare('UPDATE dr_users SET isgroup = 1 - COALESCE(isgroup, 0) WHERE id=?');$stmt->bind_param('i',$userId);if(!$stmt->execute()) flash('error','Dashboard grouping is unavailable until the V2 migration is applied.');else flash('success','Dashboard grouping preference updated.');redirect('help.php');

@@ -1,0 +1,1 @@
+<?php require __DIR__ . '/header.php'; require __DIR__ . '/sidebar.php'; ?><div class="app-content"><?php require __DIR__ . '/navbar.php'; require __DIR__ . '/flash.php'; ?><main class="page-content">

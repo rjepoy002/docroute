@@ -1,0 +1,2 @@
+<?php declare(strict_types=1); require_once __DIR__.'/../includes/auth.php'; $page_title='Password help'; require __DIR__.'/../includes/header.php'; ?>
+<main class="auth-page"><section class="auth-card card"><div class="auth-brand"><span>PALECO</span><h1>Password help</h1><p>For account security, DocuRoute no longer displays stored passwords. Please contact the system administrator to reset your account.</p></div><a class="btn" href="<?= url('index.php') ?>">Back to sign in</a></section></main></body></html>

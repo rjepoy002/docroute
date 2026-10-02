@@ -1,0 +1,1 @@
+<?php if (!empty($_SESSION['flash'])): ?><div class="flash-stack" aria-live="polite"><?php foreach ($_SESSION['flash'] as $notice): ?><div class="flash flash-<?= e($notice['type']) ?>"><?= e($notice['message']) ?></div><?php endforeach; unset($_SESSION['flash']); ?></div><?php endif; ?>

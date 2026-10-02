@@ -1,0 +1,2 @@
+<?php
+declare(strict_types=1); require_once __DIR__ . '/../includes/auth.php'; require_admin(); require_once __DIR__ . '/../includes/csrf.php'; require_once __DIR__ . '/../config/database.php'; require_csrf();$id=(int)($_POST['user_id']??0);if($id<1||$id===(int)$_SESSION['user_id']){flash('error','That account cannot be changed.');redirect('admin/index.php');}$stmt=$conn->prepare("UPDATE dr_users SET status=IF(status='Inactive','Active','Inactive') WHERE id=?");$stmt->bind_param('i',$id);$stmt->execute();flash('success','Account status updated.');redirect('admin/index.php');
