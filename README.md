@@ -33,6 +33,18 @@ Review the diagnostics in `database/migrations/001_v2_schema.sql` before applyin
 
 The authenticated user is stored in the server session; URL parameters never establish identity. State changes require CSRF tokens, authorization checks, prepared statements, and POST/Redirect/Get. Plaintext legacy passwords are upgraded automatically to secure hashes after a successful login.
 
+## Legacy password migration
+
+Older installations may still contain plaintext passwords. Back up `docrxzp_pal_db`, then run the CLI-only migration from the project root:
+
+```powershell
+php scripts/migrate_legacy_passwords.php --dry-run
+php scripts/migrate_legacy_passwords.php
+php scripts/migrate_legacy_passwords.php --status
+```
+
+Review the dry-run output first. The migration requires the exact `MIGRATE` confirmation, skips already-recognized PHP hashes, skips empty/invalid passwords for review, and never prints credentials. Test existing accounts after migration; users continue using their existing password.
+
 ## Workflow
 
 Create and route a document → recipient receives or declines it → current holder forwards it or closes it. Every event is retained in `dr_logs` and displayed in document history.
