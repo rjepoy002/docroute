@@ -1,0 +1,6 @@
+<section aria-labelledby="recent-heading" class="mt-9 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+<div class="border-b border-slate-100 px-6 py-5"><h2 id="recent-heading" class="font-semibold text-slate-900">Recent Documents</h2><p class="mt-1 text-sm text-slate-500">Latest activity on documents you created or participated in.</p></div>
+@forelse($recentDocuments as $recent)
+<a href="{{ route('documents.show', $recent) }}" class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 p-5 hover:bg-slate-50"><span class="min-w-0"><span class="text-xs font-medium text-blue-700">{{ $recent->tracking_number }}</span><span class="mt-1 block break-words font-medium">{{ $recent->title }}</span><span class="mt-1 block text-xs text-slate-500">{{ $recent->currentRoute->recipient->name }} &middot; {{ $recent->updated_at->timezone('Asia/Manila')->format('M d, Y g:i A') }}</span></span><x-document-status :status="$recent->currentRoute->status" /></a>
+@empty<div class="px-6 py-14 text-center"><h3 class="font-semibold">No documents yet</h3><p class="mt-2 text-sm text-slate-500">Documents you create or receive will appear here.</p></div>@endforelse
+</section>
