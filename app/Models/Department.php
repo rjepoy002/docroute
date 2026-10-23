@@ -24,4 +24,9 @@ class Department extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->code.' – '.$this->name;
+    }
 }

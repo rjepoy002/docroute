@@ -54,7 +54,7 @@ class DocumentController extends Controller
 
         return view('documents.index', [
             'documents' => $query->latest('updated_at')->orderByDesc('id')->paginate(15)->withQueryString(),
-            'departments' => Department::orderBy('name')->get(['id', 'name']), 'folder' => $folder,
+            'departments' => Department::orderBy('name')->get(['id', 'code', 'name']), 'folder' => $folder,
         ]);
     }
 
@@ -116,7 +116,7 @@ class DocumentController extends Controller
     private function destinations(): array
     {
         return [
-            'departments' => Department::where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'departments' => Department::where('is_active', true)->orderBy('name')->get(['id', 'code', 'name']),
             'recipients' => User::where('is_active', true)->whereHas('department', fn ($query) => $query->where('is_active', true))->orderBy('name')->get(['id', 'name', 'department_id']),
         ];
     }

@@ -1,4 +1,4 @@
-﻿<form method="post" action="{{ route('profile.complete.store') }}" class="auth-form" data-auth-form>
+<form method="post" action="{{ route('profile.complete.store') }}" class="auth-form" data-auth-form>
     @csrf
     <div class="auth-field">
         <label for="name">Full Name <span aria-hidden="true">*</span></label>
@@ -16,7 +16,7 @@
         <select id="department_id" name="department_id" required aria-describedby="department_id-error" @if($errors->has('department_id')) aria-invalid="true" @endif>
             <option value="">Select department</option>
             @foreach($departments as $department)
-                <option value="{{ $department->id }}" @selected(old('department_id', $user->department_id) == $department->id)>{{ $department->name }}</option>
+                <option value="{{ $department->id }}" @selected(old('department_id', $user->department_id) == $department->id)>{{ $department->display_name }}</option>
             @endforeach
         </select>
         <x-input-error id="department_id-error" :messages="$errors->get('department_id')" />
