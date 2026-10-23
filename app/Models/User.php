@@ -76,4 +76,18 @@ class User extends Authenticatable
     {
         return Str::title(preg_replace('/[._-]+/', ' ', explode('@', $email)[0]));
     }
+
+    public function getDisplayNameAttribute(): string
+    {
+        if (! filled($this->first_name) || ! filled($this->last_name)) {
+            return $this->getRawOriginal('name') ?? $this->attributes['name'] ?? '';
+        }
+
+        return trim($this->first_name).' '.($this->middle_initial ? strtoupper(rtrim(trim($this->middle_initial), '.')).'. ' : '').trim($this->last_name);
+    }
+
+    public function getNameAttribute(?string $value): string
+    {
+        return filled($this->first_name) && filled($this->last_name) ? $this->display_name : ($value ?? '');
+    }
 }

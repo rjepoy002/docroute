@@ -46,9 +46,9 @@
             @endif
         </nav>
         <div class="shrink-0 border-t border-white/10 p-4">
-            <a href="{{ route('profile.edit') }}" class="flex min-w-0 items-center gap-3 rounded-lg p-2 hover:bg-white/5">
+            <a href="{{ route('profile.edit') }}" data-open-profile @click="sidebarOpen = false" class="flex min-w-0 items-center gap-3 rounded-lg p-2 hover:bg-white/5">
                 <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-500/20 font-semibold text-blue-200">{{ mb_substr(auth()->user()->name, 0, 1) }}</span>
-                <span class="min-w-0"><span class="block truncate text-sm font-medium text-white">{{ auth()->user()->name }}</span><span class="block text-xs text-slate-400">{{ auth()->user()->isAdmin() ? 'Administrator' : 'Employee' }} &middot; View profile</span></span>
+                <span class="min-w-0"><span class="block truncate text-sm font-medium text-white" data-current-user-name>{{ auth()->user()->name }}</span><span class="block text-xs text-slate-400">{{ auth()->user()->isAdmin() ? 'Administrator' : 'Employee' }} &middot; Profile Settings</span></span>
             </a>
             <form method="POST" action="{{ route('logout') }}" class="mt-2">@csrf<button type="submit" class="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm hover:bg-white/10"><x-docroute-icon name="logout" />Log out</button></form>
         </div>
@@ -61,7 +61,7 @@
             </div>
             <div class="flex shrink-0 items-center gap-3 sm:gap-5">
                 <span class="hidden rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 sm:inline">{{ auth()->user()->isAdmin() ? 'Administrator' : 'Employee' }}</span>
-                <button type="button" disabled aria-label="Notifications unavailable" title="Notifications are not yet available" class="rounded-lg border border-slate-200 p-3 text-slate-400"><x-docroute-icon name="bell" /></button>
+                <details class="relative"><summary class="cursor-pointer rounded-lg border border-slate-200 px-3 py-3 text-sm font-medium"><span data-current-user-name class="inline-block max-w-28 truncate align-middle">{{ auth()->user()->name }}</span> <span aria-hidden="true">&#9662;</span></summary><div class="absolute right-0 z-20 mt-2 w-48 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"><a href="{{ route('profile.edit') }}" data-open-profile class="block rounded-lg px-3 py-3 text-sm hover:bg-slate-50">Profile Settings</a><form method="post" action="{{ route('logout') }}">@csrf<button class="w-full rounded-lg px-3 py-3 text-left text-sm hover:bg-slate-50">Log out</button></form></div></details><button type="button" disabled aria-label="Notifications unavailable" title="Notifications are not yet available" class="rounded-lg border border-slate-200 p-3 text-slate-400"><x-docroute-icon name="bell" /></button>
             </div>
         </header>
         <main id="main-content" tabindex="-1" class="mx-auto max-w-screen-2xl px-4 py-8 sm:px-8 lg:py-10">
@@ -72,5 +72,6 @@
         <footer class="px-4 pb-6 text-xs text-slate-500 sm:px-8">PALECO &middot; Document Routing System</footer>
     </div>
 </div>
+@include('profile.settings-modal')
 </body>
 </html>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\Department;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -24,9 +25,8 @@ class ProfileCompletionController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'department_id' => ['required', Rule::exists('departments', 'id')->where('is_active', true)],
+        $data = $request->validate([...ProfileUpdateRequest::nameRules(),
+            'department_id' => ['required', Rule::exists('departments', 'id')->where('is_active', true), ...($request->user()->department_id ? [Rule::in([$request->user()->department_id])] : [])],
             'designation' => ['required', 'string', 'max:255'],
             'contact_number' => ['nullable', 'string', 'max:40'],
             'role' => ['prohibited'],
@@ -35,6 +35,7 @@ class ProfileCompletionController extends Controller
             'email' => ['sometimes', Rule::in([$request->user()->email])],
         ]);
         unset($data['email']);
+        $data = [...$data, ...ProfileUpdateRequest::normalizeNames($data)];
         DB::transaction(function () use ($request, $data) {
             $department = Department::whereKey($data['department_id'])->lockForUpdate()->first();
             abort_unless($department?->is_active, 422, 'Select an active department.');

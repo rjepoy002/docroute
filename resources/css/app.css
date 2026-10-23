@@ -75,3 +75,9 @@
 @media (max-width:700px) { .auth-layout { display:flex; flex-direction:column; } .auth-brand { padding:22px 24px; overflow:visible; } .auth-wordmark { gap:12px; } .auth-wordmark strong { font-size:21px; } .auth-wordmark span span { font-size:10px; } .auth-logo { width:52px; height:52px; } .auth-brand-story, .auth-brand-footer, .auth-circuit { display:none; } .auth-wordmark:after { content:'DocRoute v2'; font-size:10px; color:#f4d348; margin-left:8px; border-left:1px solid #3a565e; padding-left:16px; } .auth-main { flex:1; padding:12px 24px 24px; } .auth-card { padding:20px 0; } .auth-notice { margin-bottom:26px; } .auth-heading h2 { font-size:29px; } .profile-dialog { padding:24px; } }
 @media (max-width:360px) { .auth-brand { padding:20px; } .auth-main { padding-left:20px; padding-right:20px; } .auth-wordmark:after { margin-left:0; padding-left:10px; font-size:9px; } .auth-wordmark span span { font-size:8px; } .auth-logo { width:42px; height:42px; } .profile-dialog { padding:20px; } }
 @media (prefers-reduced-motion:reduce) { .auth-shell *, .profile-dialog * { transition:none !important; animation:none !important; scroll-behavior:auto !important; } }
+
+.profile-settings { max-width:650px; background:#fff; }
+.profile-settings::backdrop { background:#102b38b8; }
+.profile-settings button:focus-visible, [data-open-profile]:focus-visible { outline:2px solid #102b38; outline-offset:3px; }
+.profile-settings .auth-form { gap:18px; }
+body:has(.profile-settings[open]) { overflow:hidden; }

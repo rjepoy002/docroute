@@ -18,7 +18,7 @@ class ProfileTest extends TestCase
             ->actingAs($user)
             ->get('/profile');
 
-        $response->assertOk();
+        $response->assertRedirect(route('dashboard', ['profile' => 'settings']));
     }
 
     public function test_profile_information_can_be_updated(): void
@@ -28,10 +28,8 @@ class ProfileTest extends TestCase
         $response = $this
             ->actingAs($user)
             ->patch('/profile', [
-                'name' => 'Test User',
-                'email' => $user->email,
-                'department_id' => $user->department_id,
-                'designation' => 'Engineer',
+                'first_name' => 'Test',
+                'last_name' => 'User',
             ]);
 
         $response
@@ -51,10 +49,8 @@ class ProfileTest extends TestCase
         $response = $this
             ->actingAs($user)
             ->patch('/profile', [
-                'name' => 'Test User',
-                'email' => $user->email,
-                'department_id' => $user->department_id,
-                'designation' => 'Engineer',
+                'first_name' => 'Test',
+                'last_name' => 'User',
             ]);
 
         $response

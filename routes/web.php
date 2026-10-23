@@ -3,7 +3,7 @@
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\Auth\GoogleOAuthController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ProfileCompletionController;
 use App\Http\Controllers\ProfileController;
@@ -32,7 +32,7 @@ Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->prefix('d
 Route::middleware('auth')->group(function () {
     Route::get('/profile/complete', [ProfileCompletionController::class, 'show'])->name('profile.complete');
     Route::post('/profile/complete', [ProfileCompletionController::class, 'store'])->name('profile.complete.store');
-    Route::get('/auth/google/link', [GoogleController::class, 'link'])->middleware('password.confirm')->name('google.link');
+    Route::get('/auth/google/link', [GoogleOAuthController::class, 'link'])->middleware('password.confirm')->name('google.link');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

@@ -1,10 +1,13 @@
 <form method="post" action="{{ route('profile.complete.store') }}" class="auth-form" data-auth-form>
     @csrf
-    <div class="auth-field">
-        <label for="name">Full Name <span aria-hidden="true">*</span></label>
-        <input id="name" name="name" type="text" value="{{ old('name', ($completion ?? false) ? session('profile_suggested_name', $user->name ?: \App\Models\User::emailDisplayName($user->email)) : $user->name) }}" required autofocus maxlength="255" autocomplete="name" aria-describedby="name-error" @if($errors->has('name')) aria-invalid="true" @endif>
-        <x-input-error id="name-error" :messages="$errors->get('name')" />
-    </div>
+    <p class="text-xs text-slate-500">Current name: {{ $user->getRawOriginal('name') }}. Please confirm your name below.</p>
+    @foreach(['first_name' => 'First Name', 'last_name' => 'Last Name', 'middle_initial' => 'Middle Initial (optional)'] as $field => $label)
+        <div class="auth-field">
+            <label for="{{ $field }}">{{ $label }}</label>
+            <input id="{{ $field }}" name="{{ $field }}" value="{{ old($field, $user->$field ?: ($field === 'middle_initial' ? '' : session('google_name_suggestions.'.$field, ''))) }}" maxlength="{{ $field === 'middle_initial' ? 2 : 100 }}" @if($field !== 'middle_initial') required @endif @if($field === 'first_name') autofocus @endif aria-describedby="{{ $field }}-error">
+            <x-input-error :id="$field.'-error'" :messages="$errors->get($field)" />
+        </div>
+    @endforeach
     <div class="auth-field">
         <label for="email">Email Address</label>
         <input id="email" type="email" value="{{ $user->email }}" readonly aria-describedby="email-help email-error">

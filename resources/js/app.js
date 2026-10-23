@@ -34,3 +34,5 @@ document.querySelectorAll('[data-profile-dialog]').forEach(dialog => {
     dialog.addEventListener('cancel', event => event.preventDefault());
     dialog.querySelector('[autofocus]')?.focus();
 });
+
+import './profile-settings';

@@ -4,7 +4,7 @@
     <div class="mb-8">
         <p class="text-xs font-semibold uppercase tracking-widest text-blue-600">Administration workspace</p>
         <h1 class="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Administrator Dashboard</h1>
-        <p class="mt-2 text-sm leading-6 text-slate-500">Welcome, {{ auth()->user()->name }}. Here's an overview of your organization.</p>
+        <p class="mt-2 text-sm leading-6 text-slate-500">Welcome, <span data-current-user-name>{{ auth()->user()->name }}</span>. Here's an overview of your organization.</p>
     </div>
     <section aria-labelledby="organization-heading">
         <h2 id="organization-heading" class="mb-4 text-base font-semibold text-slate-900">Organization Overview</h2>

@@ -65,7 +65,7 @@ class DepartmentMasterDataTest extends TestCase
         $user = User::factory()->create(['department_id' => $department->id, 'role' => 'admin']);
         $label = 'FSD – Finance Services Department';
         $this->assertSame($label, $department->display_name);
-        foreach (['profile.edit', 'admin.users.create', 'admin.departments.index', 'documents.create', 'documents.index'] as $route) {
+        foreach (['dashboard', 'admin.users.create', 'admin.departments.index', 'documents.create', 'documents.index'] as $route) {
             $this->actingAs($user)->get(route($route))->assertOk()->assertSee($label);
         }
         $this->get(route('documents.create'))->assertSee('value="'.$department->id.'"', false);

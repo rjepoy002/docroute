@@ -1,3 +1,5 @@
+> Google login policy update: see [google-login-setup.md](google-login-setup.md). Google now links only existing active administrator-provisioned accounts on first verified login. Company-domain self-onboarding and mandatory password-first linking described below are superseded. OAuth route names are now `auth.google.redirect` and `auth.google.callback`.
+
 # Authentication UI modernization
 
 The existing Laravel 12 / Blade / Tailwind 3 / Vite / Alpine stack is retained. No authentication controllers, permissions, database records, or document routing logic were changed for this UI update.

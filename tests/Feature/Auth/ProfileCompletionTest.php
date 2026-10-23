@@ -17,7 +17,7 @@ class ProfileCompletionTest extends TestCase
 
     private function google(?string $name = 'Google Employee', string $email = 'jane_doe-smith.test@company.test', bool $verified = true, string $id = 'google-123'): void
     {
-        $identity = (new GoogleUser)->setRaw(['email_verified' => $verified])->map([
+        $identity = (new GoogleUser)->setRaw(['email_verified' => $verified, 'given_name' => trim($name ?? '') ? 'Google' : null, 'family_name' => trim($name ?? '') ? 'Employee' : null])->map([
             'id' => $id, 'name' => $name, 'email' => $email,
         ]);
         $provider = Mockery::mock();
@@ -28,11 +28,12 @@ class ProfileCompletionTest extends TestCase
 
     public function test_google_display_name_is_used_in_editable_modal_and_email_is_readonly(): void
     {
+        User::factory()->create(['email' => 'jane_doe-smith.test@company.test', 'profile_completed_at' => null]);
         $this->google();
-        $this->get(route('google.callback'))->assertRedirect(route('profile.complete'));
+        $this->get(route('auth.google.callback', ['code' => 'test-code']))->assertRedirect(route('profile.complete'));
         $response = $this->get(route('profile.complete'))->assertOk()->assertSee('Complete Your Profile');
-        $response->assertSee('value="Google Employee"', false)->assertSee('readonly', false);
-        preg_match('/<input[^>]*name="name"[^>]*>/', $response->getContent(), $field);
+        $response->assertSee('value="Google"', false)->assertSee('readonly', false);
+        preg_match('/<input[^>]*name="first_name"[^>]*>/', $response->getContent(), $field);
         $this->assertNotEmpty($field);
         $this->assertStringNotContainsString('readonly', $field[0]);
         $this->assertSame('employee', User::first()->role);
@@ -40,9 +41,10 @@ class ProfileCompletionTest extends TestCase
 
     public function test_missing_google_name_falls_back_to_readable_email_name(): void
     {
+        User::factory()->create(['email' => 'jane_doe-smith.test@company.test', 'profile_completed_at' => null]);
         $this->google('  ');
-        $this->get(route('google.callback'))->assertRedirect(route('profile.complete'));
-        $this->get(route('profile.complete'))->assertSee('Jane Doe Smith Test');
+        $this->get(route('auth.google.callback', ['code' => 'test-code']))->assertRedirect(route('profile.complete'));
+        $this->get(route('profile.complete'))->assertSee('name="first_name" value=""', false);
     }
 
     public function test_password_signin_requires_completion_and_blocks_document_access(): void
@@ -56,7 +58,7 @@ class ProfileCompletionTest extends TestCase
     public function test_required_fields_and_active_department_are_validated(): void
     {
         $user = User::factory()->create(['profile_completed_at' => null]);
-        $this->actingAs($user)->post(route('profile.complete.store'), [])->assertSessionHasErrors(['name', 'department_id', 'designation']);
+        $this->actingAs($user)->post(route('profile.complete.store'), [])->assertSessionHasErrors(['first_name', 'last_name', 'department_id', 'designation']);
         Department::whereKey($user->department_id)->update(['is_active' => false]);
         $this->post(route('profile.complete.store'), ['name' => 'Jane', 'department_id' => $user->department_id, 'designation' => 'Engineer'])->assertSessionHasErrors('department_id');
         $this->assertNull($user->fresh()->profile_completed_at);
@@ -66,7 +68,7 @@ class ProfileCompletionTest extends TestCase
     {
         $user = User::factory()->create(['profile_completed_at' => null]);
         $this->actingAs($user)->post(route('profile.complete.store'), [
-            'name' => 'Edited Employee Name', 'department_id' => $user->department_id, 'designation' => 'Engineer',
+            'first_name' => 'Edited Employee', 'last_name' => 'Name', 'department_id' => $user->department_id, 'designation' => 'Engineer',
         ])->assertSessionHasNoErrors()->assertRedirect(route('dashboard'));
         $this->assertTrue($user->fresh()->hasCompleteProfile());
         $this->assertSame('Edited Employee Name', $user->fresh()->name);
@@ -79,7 +81,7 @@ class ProfileCompletionTest extends TestCase
     {
         $this->google(null, 'someone@gmail.com');
         config(['onboarding.company_domains' => ['gmail.com']]);
-        $this->get(route('google.callback'))->assertForbidden();
+        $this->get(route('auth.google.callback', ['code' => 'test-code']))->assertRedirect(route('login'))->assertSessionHasErrors('email');
         $this->assertDatabaseCount('users', 0);
         $this->assertGuest();
     }
@@ -88,23 +90,23 @@ class ProfileCompletionTest extends TestCase
     {
         $this->google();
         config(['onboarding.company_domains' => []]);
-        $this->get(route('google.callback'))->assertForbidden();
+        $this->get(route('auth.google.callback', ['code' => 'test-code']))->assertRedirect(route('login'))->assertSessionHasErrors('email');
         $this->assertDatabaseCount('users', 0);
     }
 
-    public function test_matching_email_does_not_link_an_existing_account(): void
+    public function test_verified_matching_email_links_an_existing_account(): void
     {
         $user = User::factory()->create(['email' => 'employee@company.test']);
         $this->google('Employee', $user->email);
-        $this->get(route('google.callback'))->assertForbidden();
-        $this->assertNull($user->fresh()->google_id);
-        $this->assertGuest();
+        $this->get(route('auth.google.callback', ['code' => 'test-code']))->assertRedirect(route('dashboard'));
+        $this->assertSame('google-123', $user->fresh()->google_id);
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_unverified_google_email_cannot_onboard(): void
     {
         $this->google('Employee', 'employee@company.test', false);
-        $this->get(route('google.callback'))->assertForbidden();
+        $this->get(route('auth.google.callback', ['code' => 'test-code']))->assertRedirect(route('login'))->assertSessionHasErrors('email');
         $this->assertDatabaseCount('users', 0);
     }
 
@@ -122,7 +124,7 @@ class ProfileCompletionTest extends TestCase
     {
         $user = User::factory()->create(['google_id' => 'google-123']);
         $this->google('Google Name', $user->email);
-        $this->get(route('google.callback'))->assertRedirect(route('dashboard'));
+        $this->get(route('auth.google.callback', ['code' => 'test-code']))->assertRedirect(route('dashboard'));
         $this->assertAuthenticatedAs($user);
     }
 
@@ -131,7 +133,7 @@ class ProfileCompletionTest extends TestCase
         $provider = Mockery::mock();
         $provider->shouldReceive('user')->once()->andThrow(new InvalidStateException);
         Socialite::shouldReceive('driver')->with('google')->andReturn($provider);
-        $this->get(route('google.callback'))->assertRedirect(route('login'))->assertSessionHasErrors('email');
+        $this->get(route('auth.google.callback', ['code' => 'test-code']))->assertRedirect(route('login'))->assertSessionHasErrors('email');
         $this->assertGuest();
     }
 
@@ -140,7 +142,7 @@ class ProfileCompletionTest extends TestCase
         $user = User::factory()->create();
         $this->google('Employee', $user->email);
         $this->actingAs($user)->withSession(['google_link_user' => $user->id])
-            ->get(route('google.callback'))->assertRedirect(route('dashboard'));
+            ->get(route('auth.google.callback', ['code' => 'test-code']))->assertRedirect(route('dashboard'));
         $this->assertSame('google-123', $user->fresh()->google_id);
         $this->assertDatabaseHas('profile_audits', ['user_id' => $user->id, 'action' => 'google.linked']);
     }
@@ -149,7 +151,7 @@ class ProfileCompletionTest extends TestCase
     {
         $user = User::factory()->create(['google_id' => 'google-123', 'is_active' => false]);
         $this->google('Employee', $user->email);
-        $this->get(route('google.callback'))->assertForbidden();
+        $this->get(route('auth.google.callback', ['code' => 'test-code']))->assertRedirect(route('login'))->assertSessionHasErrors('email');
         $this->assertGuest();
     }
 
@@ -158,7 +160,7 @@ class ProfileCompletionTest extends TestCase
         $user = User::factory()->create();
         $email = $user->email;
         $this->actingAs($user)->post(route('profile.complete.store'), [
-            'name' => 'New Name', 'department_id' => $user->department_id,
+            'first_name' => 'New', 'last_name' => 'Name', 'department_id' => $user->department_id,
             'designation' => 'New Position', 'contact_number' => '09171234567',
         ])->assertSessionHasNoErrors()->assertRedirect(route('dashboard'));
         $this->assertSame($email, $user->fresh()->email);

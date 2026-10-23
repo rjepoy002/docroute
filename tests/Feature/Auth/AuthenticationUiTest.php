@@ -20,8 +20,8 @@ class AuthenticationUiTest extends TestCase
     public function test_google_button_uses_existing_oauth_route_when_configured(): void
     {
         config(['services.google.client_id' => 'ui-test-client', 'services.google.client_secret' => 'ui-test-secret', 'services.google.redirect' => 'http://localhost/auth/google/callback']);
-        $this->get(route('login'))->assertSee('Continue with Google')->assertSee(route('google.redirect'));
-        $response = $this->get(route('google.redirect'));
+        $this->get(route('login'))->assertSee('Continue with Google')->assertSee(route('auth.google.redirect'));
+        $response = $this->get(route('auth.google.redirect'));
         $response->assertRedirect();
         $location = $response->headers->get('Location');
         $this->assertStringStartsWith('https://accounts.google.com/', $location);

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
-use App\Models\Department;
 use App\Models\Document;
 use App\Models\DocumentEvent;
 use App\Models\DocumentRoute;
@@ -14,27 +13,41 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Validation\ValidationException;
-use Illuminate\View\View;
 
 class ProfileController extends Controller
 {
     /**
      * Display the user's profile form.
      */
-    public function edit(Request $request): View
+    public function edit(Request $request): RedirectResponse
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
-            'departments' => Department::where('is_active', true)->orderBy('name')->get(),
-        ]);
+        return to_route('dashboard', ['profile' => 'settings']);
     }
 
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request)
     {
-        return app(ProfileCompletionController::class)->store($request);
+        $data = ProfileUpdateRequest::normalizeNames($request->validated());
+        $user = DB::transaction(function () use ($request, $data) {
+            $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+            abort_unless($user->is_active, 403);
+            $before = $user->only(['first_name', 'last_name', 'middle_initial']);
+            $user->forceFill($data)->save();
+            DB::table('profile_audits')->insert([
+                'user_id' => $user->id, 'action' => 'profile.updated',
+                'changes' => json_encode(['before' => $before, 'after' => $data]), 'created_at' => now(),
+            ]);
+
+            return $user;
+        });
+        $request->user()->refresh();
+        if ($request->expectsJson()) {
+            return response()->json(['message' => 'Profile updated successfully.', 'display_name' => $user->display_name]);
+        }
+
+        return to_route('dashboard')->with('success', 'Profile updated successfully.');
     }
 
     /**

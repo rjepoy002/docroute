@@ -1,3 +1,5 @@
+> Google login policy update: see [google-login-setup.md](google-login-setup.md). Google now links only existing active administrator-provisioned accounts on first verified login. Company-domain self-onboarding and mandatory password-first linking described below are superseded. OAuth route names are now `auth.google.redirect` and `auth.google.callback`.
+
 # Employee profile completion
 
 Run `composer install`, then `php artisan migrate` to install the additive profile columns and profile audit table. No existing employee or document rows are removed or automatically marked complete. Existing users supply their designation and department on their next sign-in.
