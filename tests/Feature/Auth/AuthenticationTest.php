@@ -10,6 +10,13 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_authenticated_users_are_redirected_from_root_to_dashboard(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get('/')->assertRedirect(route('dashboard'));
+    }
+
     public function test_login_screen_can_be_rendered(): void
     {
         $response = $this->get('/login');

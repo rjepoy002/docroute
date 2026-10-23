@@ -3,14 +3,16 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
+    /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
 
     /**
@@ -49,9 +51,10 @@ class User extends Authenticatable
             'password' => 'hashed',
             'department_id' => 'integer',
             'is_active' => 'boolean',
+            'profile_completed_at' => 'datetime',
         ];
     }
-    
+
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class);
@@ -62,4 +65,15 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
+    public function hasCompleteProfile(): bool
+    {
+        return $this->profile_completed_at !== null
+            && trim($this->name) !== '' && $this->department_id !== null
+            && trim($this->designation ?? '') !== '';
+    }
+
+    public static function emailDisplayName(string $email): string
+    {
+        return Str::title(preg_replace('/[._-]+/', ' ', explode('@', $email)[0]));
+    }
 }

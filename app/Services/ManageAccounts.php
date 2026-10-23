@@ -35,11 +35,19 @@ class ManageAccounts
             if ($removingAdmin && $users->filter(fn (User $item) => $item->isAdmin() && $item->is_active)->count() <= 1) {
                 throw ValidationException::withMessages(['role' => 'At least one active administrator must remain.']);
             }
+            $before = $user->only(['name', 'email', 'department_id', 'role', 'is_active']);
+            $created = ! $user->exists;
             $user->fill($data);
             if ($user->isDirty('email')) {
                 $user->email_verified_at = null;
             }
             $user->save();
+            DB::table('profile_audits')->insert([
+                'user_id' => $user->id,
+                'action' => $created ? 'profile.created' : 'profile.updated',
+                'changes' => json_encode(['actor_id' => $actor->id, 'before' => $before, 'after' => $user->only(['name', 'email', 'department_id', 'role', 'is_active'])]),
+                'created_at' => now(),
+            ]);
 
             return $user;
         }, 3);

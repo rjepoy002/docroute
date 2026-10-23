@@ -6,7 +6,10 @@ use App\Models\Department;
 use App\Models\User;
 use App\Services\ManageAccounts;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 class ManagementTest extends TestCase
@@ -34,7 +37,7 @@ class ManagementTest extends TestCase
     public function test_admin_can_create_update_deactivate_and_search_departments(): void
     {
         $this->actingAs($this->admin())->post(route('admin.departments.store'), ['name' => 'Operations', 'code' => 'ops', 'is_active' => 1])->assertRedirect(route('admin.departments.index'));
-        $department = Department::firstOrFail();
+        $department = Department::where('code', 'OPS')->firstOrFail();
         $this->assertSame('OPS', $department->code);
         $this->put(route('admin.departments.update', $department), ['name' => 'Operations Office', 'code' => 'OPS', 'is_active' => 0])->assertSessionHasNoErrors();
         $this->assertFalse($department->fresh()->is_active);
@@ -78,11 +81,11 @@ class ManagementTest extends TestCase
     public function test_inactive_departments_cannot_receive_new_assignments(): void
     {
         $department = $this->department(false);
-        $user = User::factory()->create();
+        $user = User::factory()->create(['department_id' => null, 'profile_completed_at' => null]);
         $data = $this->accountData($department);
         $this->actingAs($this->admin())->put(route('admin.users.update', $user), $data)->assertSessionHasErrors('department_id');
         $this->post(route('admin.users.store'), $data + ['password' => 'SecurePassword!123', 'password_confirmation' => 'SecurePassword!123'])->assertSessionHasErrors('department_id');
-        $this->assertNull($user->fresh()->department_id);
+        $this->assertSame($user->department_id, $user->fresh()->department_id);
     }
 
     public function test_existing_inactive_department_assignment_can_be_preserved(): void
@@ -132,7 +135,7 @@ class ManagementTest extends TestCase
         try {
             app(ManageAccounts::class)->save($staleActor, $this->accountData($department), $remaining);
             $this->fail('Stale administrator was authorized.');
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $exception) {
+        } catch (HttpException $exception) {
             $this->assertSame(403, $exception->getStatusCode());
         }
         $this->assertTrue($remaining->fresh()->isAdmin());
@@ -199,15 +202,15 @@ class ManagementTest extends TestCase
         config(['session.driver' => 'database']);
         $admin = $this->admin();
         $user = User::factory()->create();
-        $token = \Illuminate\Support\Facades\Password::broker()->createToken($user);
-        \Illuminate\Support\Facades\DB::table('sessions')->insert([
+        $token = Password::broker()->createToken($user);
+        DB::table('sessions')->insert([
             'id' => 'target-session', 'user_id' => $user->id, 'payload' => base64_encode(serialize([])), 'last_activity' => time(),
         ]);
         $this->actingAs($admin)->put(route('admin.users.password', $user), [
             'current_password' => 'password', 'password' => 'NewSecurePassword!123', 'password_confirmation' => 'NewSecurePassword!123',
         ])->assertSessionHasNoErrors()->assertRedirect(route('admin.users.edit', $user));
         $this->assertDatabaseMissing('sessions', ['id' => 'target-session']);
-        $this->assertFalse(\Illuminate\Support\Facades\Password::broker()->tokenExists($user, $token));
+        $this->assertFalse(Password::broker()->tokenExists($user, $token));
     }
 
     public function test_all_management_routes_require_admin_security_middleware(): void

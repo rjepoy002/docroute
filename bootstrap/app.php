@@ -1,8 +1,12 @@
 <?php
 
+use App\Http\Middleware\EnsureAccountIsActive;
+use App\Http\Middleware\EnsureProfileIsComplete;
+use App\Http\Middleware\EnsureUserIsAdmin;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Session\Middleware\AuthenticateSession;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,12 +17,13 @@ return Application::configure(basePath: dirname(__DIR__))
 
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
-            \App\Http\Middleware\EnsureAccountIsActive::class,
-            \Illuminate\Session\Middleware\AuthenticateSession::class,
+            EnsureAccountIsActive::class,
+            AuthenticateSession::class,
         ]);
         $middleware->alias([
-            'admin' => \App\Http\Middleware\EnsureUserIsAdmin::class,
-            'active' => \App\Http\Middleware\EnsureAccountIsActive::class,
+            'admin' => EnsureUserIsAdmin::class,
+            'active' => EnsureAccountIsActive::class,
+            'profile.complete' => EnsureProfileIsComplete::class,
         ]);
     })
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\Department;
 use App\Models\Document;
 use App\Models\DocumentEvent;
 use App\Models\DocumentRoute;
@@ -24,6 +25,7 @@ class ProfileController extends Controller
     {
         return view('profile.edit', [
             'user' => $request->user(),
+            'departments' => Department::where('is_active', true)->orderBy('name')->get(),
         ]);
     }
 
@@ -32,15 +34,7 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
-
-        $request->user()->save();
-
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+        return app(ProfileCompletionController::class)->store($request);
     }
 
     /**

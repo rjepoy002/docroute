@@ -1,0 +1,30 @@
+# Compatibility for XAMPP hosting the project beneath htdocs.
+# Prefer the public-only Apache Alias documented in docs/update-004.md.
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+
+<FilesMatch "^(?!index\.php$).*\.(?:php|phtml|phar)$">
+    Require all denied
+</FilesMatch>
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+RewriteEngine On
+
+# Never serve project files through the root front controller.
+RewriteRule (^|/)\. - [F,END]
+RewriteRule ^(?:app|bootstrap|config|database|docs|node_modules|resources|routes|storage|tests|vendor|public)(?:/|$) - [F,END,NC]
+RewriteRule ^(?:artisan|composer\.(?:json|lock)|package(?:-lock)?\.json|phpunit\.xml|vite\.config\.js)$ - [F,END,NC]
+
+# Preserve authentication headers passed to Laravel.
+RewriteCond %{HTTP:Authorization} .
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteCond %{HTTP:x-xsrf-token} .
+RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+# Only static public assets may bypass the front controller.
+RewriteRule ^(.+\.(?:css|js|map|png|jpe?g|gif|svg|ico|webp|avif|woff2?|ttf|eot|txt|webmanifest))$ public/$1 [END,NC]
+
+RewriteRule ^index\.php$ - [END]
+RewriteRule ^ index.php [END]

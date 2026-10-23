@@ -49,6 +49,6 @@ class AdminDashboardTest extends TestCase
 
     public function test_admin_route_keeps_required_middleware(): void
     {
-        $this->assertSame(['web', 'auth', 'verified', 'active', 'admin'], app('router')->getRoutes()->getByName('admin.dashboard')->gatherMiddleware());
+        $this->assertSame(['web', 'auth', 'verified', 'active', 'admin', 'profile.complete'], app('router')->getRoutes()->getByName('admin.dashboard')->gatherMiddleware());
     }
 }

@@ -1,25 +1,14 @@
-<x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600">
-        {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
-    </div>
-
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
-    <form method="POST" action="{{ route('password.email') }}">
+﻿<x-guest-layout>
+    <a class="auth-back" href="{{ route('login') }}">&larr; Back to sign in</a>
+    <header class="auth-heading"><span class="auth-kicker">ACCOUNT RECOVERY</span><h2>Forgot Password?</h2><p>Enter your account email and we'll send you a link to reset your password.</p></header>
+    <x-auth-session-status class="auth-feedback" :status="session('status')" />
+    <form method="POST" action="{{ route('password.email') }}" class="auth-form" data-auth-form>
         @csrf
-
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        <div class="auth-field">
+            <label for="email">Email address</label>
+            <input id="email" type="email" name="email" value="{{ old('email') }}" required autofocus autocomplete="username" inputmode="email" aria-describedby="email-error" @if($errors->has('email')) aria-invalid="true" @endif>
+            <x-input-error id="email-error" :messages="$errors->get('email')" />
         </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Email Password Reset Link') }}
-            </x-primary-button>
-        </div>
+        <button class="auth-submit" type="submit" data-loading-label="Sending link…">Send Reset Link <span aria-hidden="true">&rarr;</span></button>
     </form>
 </x-guest-layout>

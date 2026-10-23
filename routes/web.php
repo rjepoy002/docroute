@@ -3,18 +3,20 @@
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Auth\GoogleController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\ProfileCompletionController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route(auth()->check() ? 'dashboard' : 'login');
 });
 
 Route::get('/dashboard', App\Http\Controllers\DashboardController::class)
-    ->middleware(['auth', 'verified', 'active'])->name('dashboard');
+    ->middleware(['auth', 'verified', 'active', 'profile.complete'])->name('dashboard');
 
-Route::middleware(['auth', 'verified', 'active'])->prefix('documents')->name('documents.')->group(function () {
+Route::middleware(['auth', 'verified', 'active', 'profile.complete'])->prefix('documents')->name('documents.')->group(function () {
     Route::get('/', [DocumentController::class, 'index'])->name('index');
     foreach (['incoming', 'outgoing', 'pending', 'unseen'] as $folder) {
         Route::get($folder, [DocumentController::class, 'index'])->defaults('folder', $folder)->name($folder);
@@ -28,12 +30,15 @@ Route::middleware(['auth', 'verified', 'active'])->prefix('documents')->name('do
 });
 
 Route::middleware('auth')->group(function () {
+    Route::get('/profile/complete', [ProfileCompletionController::class, 'show'])->name('profile.complete');
+    Route::post('/profile/complete', [ProfileCompletionController::class, 'store'])->name('profile.complete.store');
+    Route::get('/auth/google/link', [GoogleController::class, 'link'])->middleware('password.confirm')->name('google.link');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware(['auth', 'verified', 'active', 'admin'])
+Route::middleware(['auth', 'verified', 'active', 'admin', 'profile.complete'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {

@@ -28,6 +28,10 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if (! $request->user()->hasCompleteProfile()) {
+            return to_route('profile.complete');
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

@@ -2,12 +2,14 @@
 
 namespace Database\Factories;
 
+use App\Models\Department;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\User>
+ * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
@@ -26,6 +28,10 @@ class UserFactory extends Factory
         return [
             'role' => 'employee',
             'is_active' => true,
+            'designation' => 'Employee',
+            'profile_completed_at' => now(),
+            'department_id' => fn () => Department::first()?->id
+                ?? Department::create(['code' => 'TEST', 'name' => 'Test Department', 'is_active' => true])->id,
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
